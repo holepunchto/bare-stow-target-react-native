@@ -2,7 +2,7 @@ const test = require('brittle')
 const target = require('.')
 
 const client = {
-  source: `import RPC from 'bare-rpc'
+  source: `const { default: RPC } = await import('bare-rpc')
 
 const router = new RPC.CommandRouter()
 const rpc = new RPC(ipc, router)

@@ -20,7 +20,7 @@ export default {
 `
 
 exports['generate - types - 0'] = `declare const harness: {
-  start(opts?: object): Promise<{ ipc: import('bare-stow/host').IPC }>
+  start(opts?: import('react-native-bare-kit').WorkletOptions): Promise<{ ipc: import('bare-stow/host').IPC }>
 }
 
 export default harness
@@ -38,7 +38,7 @@ export default {
 
     const ipc = stow.wrap(worklet.IPC)
 
-    import RPC from 'bare-rpc'
+    const { default: RPC } = await import('bare-rpc')
 
     const router = new RPC.CommandRouter()
     const rpc = new RPC(ipc, router)
@@ -53,7 +53,7 @@ export default {
 `
 
 exports['generate with client - types - 0'] = `declare const harness: {
-  start(opts?: object): Promise<{ ipc: import('bare-stow/host').IPC; rpc: import('bare-rpc') }>
+  start(opts?: import('react-native-bare-kit').WorkletOptions): Promise<{ ipc: import('bare-stow/host').IPC; rpc: import('bare-rpc') }>
 }
 
 export default harness

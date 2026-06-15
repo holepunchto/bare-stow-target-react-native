@@ -1,6 +1,6 @@
 {
   "name": "bare-stow-target-react-native",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React Native target for bare-stow",
   "exports": {
     "./package": "./package.json",

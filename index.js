@@ -32,12 +32,16 @@ import stow from 'bare-stow/host'
 import bundle from ${JSON.stringify(bundleSpecifier)}
 
 export default {
-  async start(opts = {}) {
+  async start({ timeout, grace, ...opts } = {}) {
     const worklet = new Worklet(opts)
 
     worklet.start('/core.bundle', bundle)
 
-    const ${ipc} = stow.wrap(worklet.IPC)
+    const ${ipc} = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
+
+    // The worklet outlives its runtime until terminated, so release it once the
+    // runtime has reported its exit.
+    ${ipc}.on('exit', () => worklet.terminate())
 ${client ? '\n' + indent(client.source, 4) : ''}
     await ${ipc}.ready
 
@@ -50,7 +54,10 @@ ${client ? '\n' + indent(client.source, 4) : ''}
       extension: '.d.ts',
       source: `\
 declare const harness: {
-  start(opts?: import('react-native-bare-kit').WorkletOptions): Promise<${handle}>
+  start(
+    opts?: import('react-native-bare-kit').WorkletOptions &
+      Omit<import('bare-stow/host').IPCOptions, 'kill'>
+  ): Promise<${handle}>
 }
 
 export default harness

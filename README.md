@@ -15,7 +15,7 @@ const stow = require('bare-stow')
 const target = require('bare-stow-target-react-native')
 
 const entry = new URL('file:///app/core.js')
-const out = new URL('file:///app/out/index.js')
+const out = new URL('file:///app/core-harness/')
 
 for await (const artifact of stow(entry, target, out)) {
   console.log(artifact.url.href)
@@ -25,7 +25,16 @@ for await (const artifact of stow(entry, target, out)) {
 On the command line, `bare-stow` resolves `--target react-native` to this package:
 
 ```console
-$ bare-stow --target react-native --out ./out/index.js ./core.js
+$ bare-stow pack --target react-native --out ./core-harness ./core.js
+```
+
+The harness imports `bare-stow-host` and `react-native-bare-kit`, which the generated `package.json` declares as dependencies, along with the RPC library when a `client` is requested.
+
+The addons and assets of the bundle are left to the application, which links those of all of its bundles once with `bare-stow link`:
+
+```console
+$ bare-stow link --target bare-kit --language swift --out ./ios/BareKitAddons ./core.js ./push.js
+$ bare-stow link --target bare-kit --language kotlin --language-option package=com.example.addons --out ./android/addons ./core.js ./push.js
 ```
 
 ## License

@@ -1,10 +1,11 @@
 exports.name = 'react-native'
+exports.isolation = 'thread'
 exports.linked = true
+exports.linking = 'app'
 exports.offload = false
 exports.format = 'bundle.mjs'
 exports.encoding = 'utf8'
 exports.extension = '.bundle.mjs'
-exports.module = 'esm'
 exports.hosts = [
   'ios-arm64',
   'ios-arm64-simulator',
@@ -15,61 +16,59 @@ exports.hosts = [
   'android-x64'
 ]
 
-exports.generate = function generate(opts) {
-  const { bundleSpecifier, ipc, rpc, client = null } = opts
+exports.languages = {
+  javascript: {
+    options: { module: 'esm' },
+    generate: javascript
+  }
+}
 
-  const returned = client ? `{ ${ipc}, ${rpc} }` : `{ ${ipc} }`
+function javascript(context) {
+  const { bundle, client, resources } = context
 
   const handle = client
-    ? `{ ${ipc}: import('bare-stow/host').IPC; ${rpc}: ${client.type} }`
-    : `{ ${ipc}: import('bare-stow/host').IPC }`
+    ? `{ ipc: import('bare-stow-host').IPC; rpc: ReturnType<typeof import(${JSON.stringify(client)}).attach> }`
+    : `{ ipc: import('bare-stow-host').IPC }`
 
-  return [
-    {
-      source: `\
+  const source = `\
 import { Worklet } from 'react-native-bare-kit'
-import stow from 'bare-stow/host'
-import bundle from ${JSON.stringify(bundleSpecifier)}
-
+import stow from 'bare-stow-host'
+import bundle from ${JSON.stringify(bundle)}
+${client ? `import * as client from ${JSON.stringify(client)}\n` : ''}
 export default {
-  async start({ timeout, grace, ...opts } = {}) {
+  async start({ timeout, grace, ${client ? 'handlers = () => {}, ' : ''}...opts } = {}) {
     const worklet = new Worklet(opts)
 
-    worklet.start('/core.bundle', bundle)
+    worklet.start(${JSON.stringify(resources + '.bundle')}, bundle)
 
-    const ${ipc} = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
+    const ipc = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
 
-    // The worklet outlives its runtime until terminated, so release it once the
-    // runtime has reported its exit.
-    ${ipc}.on('exit', () => worklet.terminate())
-${client ? '\n' + indent(client.source, 4) : ''}
-    await ${ipc}.ready
+    ipc.on('exit', () => worklet.terminate())
+${client ? '\n    const rpc = client.attach(ipc, handlers)\n' : ''}
+    await ipc.ready
 
-    return ${returned}
+    return ${client ? '{ ipc, rpc }' : '{ ipc }'}
   }
 }
 `
-    },
-    {
-      extension: '.d.ts',
-      source: `\
+
+  const types = `\
 declare const harness: {
   start(
     opts?: import('react-native-bare-kit').WorkletOptions &
-      Omit<import('bare-stow/host').IPCOptions, 'kill'>
+      Omit<import('bare-stow-host').IPCOptions, 'kill'>${client ? ` & { handlers?: import(${JSON.stringify(client)}).Handlers }` : ''}
   ): Promise<${handle}>
 }
 
 export default harness
 `
-    }
-  ]
-}
 
-function indent(source, spaces) {
-  const pad = ' '.repeat(spaces)
-  return source
-    .split('\n')
-    .map((line) => (line.length === 0 ? line : pad + line))
-    .join('\n')
+  return {
+    source,
+    types,
+    dependencies: {
+      'bare-stow-host': '^0.1.0',
+      'react-native-bare-kit': '^0.16.0'
+    }
+  }
 }

@@ -30,7 +30,7 @@ test('generate declares the packages the harness imports', (t) => {
     options: target.languages.javascript.options
   })
 
-  t.alike(dependencies, { 'bare-stow-host': '^0.1.0', 'react-native-bare-kit': '^0.16.0' })
+  t.alike(dependencies, { 'bare-stow-host': '^0.2.0', 'react-native-bare-kit': '^0.17.1' })
 })
 
 test('generate with client', (t) => {

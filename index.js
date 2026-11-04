@@ -43,7 +43,9 @@ export default {
 
     const ipc = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
 
-    ipc.on('exit', () => worklet.terminate())
+    worklet.IPC.on('end', () => worklet.IPC.destroy())
+
+    worklet.on('exit', (code) => ipc.exited(code))
 ${client ? '\n    const rpc = client.attach(ipc, handlers)\n' : ''}
     await ipc.ready
 
@@ -67,8 +69,8 @@ export default harness
     source,
     types,
     dependencies: {
-      'bare-stow-host': '^0.1.0',
-      'react-native-bare-kit': '^0.16.0'
+      'bare-stow-host': '^0.2.0',
+      'react-native-bare-kit': '^0.17.1'
     }
   }
 }

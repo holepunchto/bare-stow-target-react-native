@@ -12,7 +12,9 @@ export default {
 
     const ipc = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
 
-    ipc.on('exit', () => worklet.terminate())
+    worklet.IPC.on('end', () => worklet.IPC.destroy())
+
+    worklet.on('exit', (code) => ipc.exited(code))
 
     await ipc.ready
 
@@ -44,7 +46,9 @@ export default {
 
     const ipc = stow.wrap(worklet.IPC, { kill: () => worklet.terminate(), timeout, grace })
 
-    ipc.on('exit', () => worklet.terminate())
+    worklet.IPC.on('end', () => worklet.IPC.destroy())
+
+    worklet.on('exit', (code) => ipc.exited(code))
 
     const rpc = client.attach(ipc, handlers)
 

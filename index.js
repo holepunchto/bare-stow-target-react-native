@@ -6,6 +6,8 @@ exports.offload = false
 exports.format = 'bundle.mjs'
 exports.encoding = 'utf8'
 exports.extension = '.bundle.mjs'
+exports.syntax = syntax
+exports.modules = modules
 exports.hosts = [
   'ios-arm64',
   'ios-arm64-simulator',
@@ -15,6 +17,62 @@ exports.hosts = [
   'android-ia32',
   'android-x64'
 ]
+
+const engines = {
+  ios: ['v8', 'javascriptcore'],
+  android: ['v8', 'quickjs']
+}
+
+exports.options = function options(given = {}) {
+  const resolved = { ios: { engine: 'v8' }, android: { engine: 'v8' } }
+
+  for (const [platform, opts] of Object.entries(given)) {
+    if (!Object.hasOwn(engines, platform)) {
+      throw new Error(`Unknown option '${platform}' for target 'react-native'`)
+    }
+
+    if (typeof opts !== 'object' || opts === null) {
+      throw new Error(`Option '${platform}' must be an object, got '${opts}'`)
+    }
+
+    const { engine = 'v8', ...unknown } = opts
+
+    for (const option of Object.keys(unknown)) {
+      throw new Error(`Unknown option '${platform}.${option}' for target 'react-native'`)
+    }
+
+    if (!engines[platform].includes(engine)) {
+      const supported = engines[platform].map((name) => `'${name}'`)
+
+      throw new Error(
+        `Option '${platform}.engine' must be ${supported.join(' or ')}, got '${engine}'`
+      )
+    }
+
+    resolved[platform] = { engine }
+  }
+
+  return resolved
+}
+
+// The bundle runs on both platforms, so it must suit the engine of each.
+// JavaScriptCore lacks class static blocks until iOS 16.4, past the minimum
+// version of React Native.
+function syntax({ targetOptions }) {
+  const used = usedEngines(targetOptions)
+
+  if (used.includes('javascriptcore')) return 'es2021'
+  if (used.includes('quickjs')) return 'es2024'
+  return 'esnext'
+}
+
+function modules({ targetOptions }) {
+  return usedEngines(targetOptions).every((engine) => engine === 'v8') ? 'esm' : 'cjs'
+}
+
+function usedEngines(targetOptions) {
+  return Object.keys(engines).map((platform) => targetOptions[platform].engine)
+}
 
 exports.languages = {
   javascript: {

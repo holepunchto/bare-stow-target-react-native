@@ -1,4 +1,4 @@
-import { Target } from 'bare-stow'
+import { JavaScriptOptions, Target, TargetLanguage } from 'bare-stow'
 
 /** The options of the target, given as `targetOptions` to `stow()`. */
 interface ReactNativeOptions {
@@ -14,10 +14,23 @@ interface ReactNativeOptions {
   }
 }
 
-declare const target: Target
+/** The options of the target with defaults applied, as passed to its properties. */
+interface ReactNativeResolvedOptions {
+  ios: { engine: 'v8' | 'javascriptcore' }
+  android: { engine: 'v8' | 'quickjs' }
+}
+
+interface ReactNativeTarget extends Target<ReactNativeResolvedOptions> {
+  languages: {
+    javascript: TargetLanguage<JavaScriptOptions, ReactNativeResolvedOptions>
+  }
+  options(given?: ReactNativeOptions): ReactNativeResolvedOptions
+}
+
+declare const target: ReactNativeTarget
 
 declare namespace target {
-  export { type ReactNativeOptions }
+  export { type ReactNativeOptions, type ReactNativeResolvedOptions }
 }
 
 export = target
